@@ -1,3 +1,6 @@
+This fork is a port to MacOS
+
+
 # Json2Kotlin
 
 Converts a JSON string into Kotlin data classes.
