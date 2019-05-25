@@ -1,5 +1,4 @@
 rootProject.name = 'json-2-kotlin'
-include 'spring'
 include 'cmdline'
 include 'core'
 

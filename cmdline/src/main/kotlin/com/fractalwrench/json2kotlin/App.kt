@@ -1,37 +1,49 @@
 package com.fractalwrench.json2kotlin
 
-import com.bugsnag.Bugsnag
 import org.apache.commons.cli.*
 import java.io.File
 import java.nio.file.Paths
+import java.io.ByteArrayInputStream
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.nio.charset.StandardCharsets
+import java.util.Random
 
 
 fun main(args: Array<String>) {
-    Bugsnag("36024661eca71fb467ceddbaeeff35c3")
 
     val options = prepareOptions()
     val parser = DefaultParser()
 
-    try {
-        val cmd = parser.parse(options, args)
+    val cmd = parser.parse(options, args)
+    val stream: InputStream
 
-        if (cmd.hasOption("help") || !cmd.hasOption("input")) {
+    when {
+        cmd.hasOption("help") -> {
             printHelp(options)
-        } else {
-            val parsedOptionValue = cmd.getParsedOptionValue("input") as String
-            val inputFile = Paths.get(parsedOptionValue).toFile()
-
+            return
+        }
+        cmd.hasOption("i") -> {
+            val inputFile = Paths.get(cmd.getParsedOptionValue("i") as String).toFile()
             if (inputFile.exists()) {
-                val outputFile = findOutputFile(inputFile)
-                Kotlin2JsonConverter().convert(inputFile.inputStream(), outputFile.outputStream(), ConversionArgs())
-                println("Generated source available at '$outputFile'")
-            } else {
-                println("Failed to find file '$inputFile'")
+                stream = inputFile.inputStream()
+            }
+            else {
+                println("couldn't find file")
+                return
             }
         }
-    } catch (e: ParseException) {
-        println("Failed to parse arguments: ${e.message}")
+        cmd.hasOption("s") ->
+            stream = ByteArrayInputStream((cmd.getParsedOptionValue("s") as String).toByteArray(StandardCharsets.UTF_8))
+        else -> {
+            printHelp(options)
+            return
+        }
     }
+
+    val filePath = "/Users/curli/Common/jsonkt/${randomCode()}.kt"
+    Kotlin2JsonConverter().convert(stream, FileOutputStream(filePath), ConversionArgs())
+    println("Generated source available at '$filePath'")
 }
 
 private fun findOutputFile(inputFile: File): File {
@@ -47,16 +59,27 @@ private fun printHelp(options: Options) {
 
 private fun prepareOptions(): Options {
     return with(Options()) {
-        addOption(Option.builder("input")
+        addOption(Option.builder("i")
                 .desc("The JSON file input")
                 .numberOfArgs(1)
                 .build())
-        addOption(Option.builder("packageName")
-                .desc("The package name for the generated Kotlin file")
+        addOption(Option.builder("s")
+                .desc("The JSON as a string")
                 .numberOfArgs(1)
                 .build())
         addOption(Option.builder("help")
                 .desc("Displays help on available commands")
                 .build())
     }
+}
+
+private fun randomCode(): String {
+    val chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".toCharArray()
+    val sb = StringBuilder(6)
+    val random = Random()
+    (1..6).forEach { _ ->
+        val c = chars[random.nextInt(chars.size)]
+        sb.append(c)
+    }
+    return sb.toString()
 }
